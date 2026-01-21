@@ -12,6 +12,4 @@ class Brick(Model):
     last_slap: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     checking_day: Mapped[str] = mapped_column(String(32), default="", nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "group_id", name="uq_user_group"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "group_id", name="uq_user_group"),)

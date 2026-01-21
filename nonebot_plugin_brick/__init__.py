@@ -4,7 +4,7 @@ from nonebot.plugin import PluginMetadata
 require("nonebot_plugin_orm")
 
 from .config import Config
-from .handlers import *
+from .handler import *
 
 __plugin_meta__ = PluginMetadata(
     name="砖",
