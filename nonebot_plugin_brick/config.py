@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from nonebot.plugin import get_plugin_config
 
 
 class ScopedConfig(BaseModel):
@@ -15,4 +16,6 @@ class ScopedConfig(BaseModel):
 
 
 class Config(BaseModel):
-    brick: ScopedConfig
+    brick: ScopedConfig = Field(default_factory=ScopedConfig)
+
+plugin_config = get_plugin_config(Config).brick

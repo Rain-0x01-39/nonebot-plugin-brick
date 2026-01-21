@@ -6,7 +6,7 @@ from nonebot_plugin_alconna import CommandMeta, on_alconna
 from nonebot_plugin_orm import async_scoped_session
 from sqlalchemy import select
 
-from .__init__ import config
+from .config import plugin_config as config
 from .models import Brick
 
 brick_alc = Alconna(
