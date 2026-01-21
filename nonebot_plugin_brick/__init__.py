@@ -1,5 +1,7 @@
-from nonebot import get_driver, get_plugin_config, logger
+from nonebot import get_driver, get_plugin_config, logger, require
 from nonebot.plugin import PluginMetadata
+
+require("nonebot_plugin_orm")
 
 from .config import Config
 
