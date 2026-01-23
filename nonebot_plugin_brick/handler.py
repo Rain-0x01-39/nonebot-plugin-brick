@@ -1,7 +1,7 @@
 from asyncio import create_task
 
 from arclet.alconna import Alconna
-from nonebot import get_driver, logger
+from nonebot import logger
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
 from nonebot.message import event_preprocessor
 from nonebot_plugin_alconna import (
@@ -17,8 +17,6 @@ from sqlalchemy import select
 # from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from .config import plugin_config as config
 from .models import Brick
-
-driver = get_driver()
 
 burn_states: dict[tuple[str, str], dict] = {}
 
