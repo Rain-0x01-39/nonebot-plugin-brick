@@ -93,7 +93,9 @@ async def _(event: GroupMessageEvent, session=get_session()):
     elif brick_data.bricks >= config.max_brick:
         await brick_matcher.finish(f"你最多只能拥有{config.max_brick}块砖")
 
-    # 烧砖
+    if (str(event.group_id), str(event.user_id)) in burn_states:
+        await brick_matcher.finish("已经在烧砖了")
+
     burn_states[(str(event.group_id), str(event.user_id))] = {
         "burning": True,
         "count": 0,
