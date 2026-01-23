@@ -86,7 +86,7 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
     if not brick_data:
         # 创建记录
-        logger.info(f"创建砖头记录: {event.group_id}:{event.user_id}")
+        logger.bind(group_id=event.group_id, user_id=event.user_id).info("创建砖头记录")
         brick_data = Brick(user_id=event.user_id, group_id=event.group_id, bricks=0)
         session.add(brick_data)
         await session.commit()
@@ -156,7 +156,9 @@ async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
         if sender_id == str(bot.self_id) or sender_id == u:
             continue
         state["msgcount"] += 1
-        logger.debug(f"{g}:{u} 消息: {state['msgcount']}")
+        logger.bind(group_id=event.group_id, user_id=event.user_id).debug(
+            "烧砖消息计数 {msgcount}", msgcount=state["msgcount"]
+        )
 
         if state["msgcount"] >= config.cost:
             # db 砖 +1
@@ -175,7 +177,9 @@ async def commit_brick(group_id: str, user_id: str):
         if brick:
             # 直接增加一块砖（前面已创建记录并检查上限）
             brick.bricks += 1
-            logger.info(f"{group_id}:{user_id} 烧砖完成，更新数据库: {brick.bricks} 砖")
+            logger.bind(group_id=group_id, user_id=user_id).info(
+                "烧砖完成，更新数据库 {bricks}砖", bricks=brick.bricks
+            )
             await session.commit()
             # 下面这个是典型的 OneBot V11 思维
             # await bot.send_group_msg(
@@ -186,4 +190,6 @@ async def commit_brick(group_id: str, user_id: str):
             msg = UniMessage.at(user_id).text(" 砖已经烧好啦")
             await msg.send(target=Target.group(group_id))
         else:
-            logger.warning(f"{group_id}:{user_id} 烧砖完成但未找到记录，跳过数据库更新")
+            logger.bind(group_id=group_id, user_id=user_id).warning(
+                "烧砖完成但未找到记录，跳过数据库更新"
+            )
