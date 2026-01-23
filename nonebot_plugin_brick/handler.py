@@ -98,7 +98,7 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
     burn_states[(str(event.group_id), str(event.user_id))] = {
         "burning": True,
-        "count": 0,
+        "msgcount": 0,
     }
 
     await brick_matcher.send(
@@ -155,13 +155,13 @@ async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
             continue
         if sender_id == str(bot.self_id) or sender_id == u:
             continue
-        state["count"] += 1
-        logger.debug(f"{g}:{u} 消息: {state['count']}")
+        state["msgcount"] += 1
+        logger.debug(f"{g}:{u} 消息: {state['msgcount']}")
 
-        if state["count"] >= config.cost:
+        if state["msgcount"] >= config.cost:
             # db 砖 +1
             create_task(commit_brick(g, u))
-            state["count"] = 0
+            state["msgcount"] = 0
             del burn_states[key]
 
 
