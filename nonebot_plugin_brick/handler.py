@@ -1,10 +1,14 @@
 from asyncio import create_task
+from random import randint, random
 
 from arclet.alconna import Alconna
 from nonebot import logger
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
 from nonebot.message import event_preprocessor
 from nonebot_plugin_alconna import (
+    Args,
+    Arparma,
+    At,
     CommandMeta,
     Subcommand,
     Target,
@@ -43,7 +47,10 @@ brick_alc.add(
 
 brick_alc.add(
     Subcommand(
-        "拍人", alias=["拍人"], help_text="拍晕（禁言）对方随机时间，有概率被反将一军"
+        "拍人",
+        Args["target", At],
+        alias=["拍人"],
+        help_text="拍晕（禁言）对方随机时间，有概率被反将一军",
     )
 )
 
@@ -107,8 +114,52 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 
 @brick_matcher.assign("拍人")
-async def _(event: GroupMessageEvent):
-    await brick_matcher.send("[TODO] 咕咕")
+async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_session()):
+    user_id = str(event.user_id)
+    group_id = str(event.group_id)
+    target_id = str(args.target.target)
+
+    # 看看用户有没有砖头
+    result = await session.execute(
+        select(Brick).where(
+            Brick.user_id == event.user_id, Brick.group_id == event.group_id
+        )
+    )
+    brick_data = result.scalar_one_or_none()
+    if not brick_data or brick_data.bricks <= 0:
+        await brick_matcher.finish("你在这个群还没有砖头，使用 /砖头 烧砖 烧点砖头吧")
+
+    # 检查目标是否已禁言
+    # [TODO]
+
+    rev_probability = config.reverse / 100
+    if random() < rev_probability:
+        try:
+            mute_time = randint(config.min_mute_time, config.max_mute_time)
+            await bot.set_group_ban(
+                group_id=int(group_id), user_id=int(user_id), duration=mute_time
+            )
+            msg = UniMessage.at(target_id).text(
+                f" 夺过你的砖头，把你拍晕了 {mute_time} 秒"
+            )
+            await msg.send(target=event)
+        except Exception:
+            logger.opt(exception=True).error("禁言失败")
+    else:
+        try:
+            mute_time = random.randint(config.min_mute_time, config.max_mute_time)
+            await bot.set_group_ban(
+                group_id=int(group_id), user_id=int(target_id), duration=mute_time
+            )
+            msg = (
+                UniMessage.at(target_id)
+                .text(" 你被 ")
+                .at(user_id)
+                .text(f" 拍晕了 {mute_time} 秒")
+            )
+            await msg.send(target=event)
+        except Exception:
+            logger.opt(exception=True).error("禁言失败")
 
 
 @brick_matcher.assign("随机拍人")
