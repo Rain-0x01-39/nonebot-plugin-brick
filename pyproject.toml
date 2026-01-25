@@ -3,7 +3,7 @@ name = "nonebot-plugin-brick"
 version = "0.1.0"
 description = "群聊娱乐插件：烧砖拍人，一砖撂倒（移植自 koishi-plugin-brick）"
 authors = [
-    {name = "SZ2528",email = "83620631+SZ2528@users.noreply.github.com"}
+    {name = "Rain-0x01-39",email = "83620631+Rain-0x01-39@users.noreply.github.com"}
 ]
 license = "MIT"
 license-files = ["LICENSE"]

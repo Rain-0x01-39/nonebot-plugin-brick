@@ -12,7 +12,7 @@ __plugin_meta__ = PluginMetadata(
     description="功夫再好，一砖撂倒。烧制砖头来拍群友吧，拍好了禁言他，没拍好被禁言！",
     usage="{插件用法}",
     type="application",
-    homepage="https://github.com/SZ2528/nonebot-plugin-brick",
+    homepage="https://github.com/Rain-0x01-39/nonebot-plugin-brick",
     config=Config,
     supported_adapters={"~onebot.v11"},
 )

@@ -12,7 +12,7 @@ _✨ 烧制砖块，然后拍晕群友！ ✨_
 
 
 <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/SZ2528/nonebot-plugin-brick.svg" alt="license">
+    <img src="https://img.shields.io/github/license/Rain-0x01-39/nonebot-plugin-brick.svg" alt="license">
 </a>
 <a href="https://pypi.python.org/pypi/nonebot-plugin-brick">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-brick.svg" alt="pypi">
