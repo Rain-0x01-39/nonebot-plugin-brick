@@ -1,5 +1,5 @@
 from asyncio import create_task
-from random import randint, random
+from random import choice, randint, random
 
 from arclet.alconna import Alconna
 from nonebot import logger
@@ -120,8 +120,17 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_sessi
 
 
 @brick_matcher.assign("随机拍人")
-async def _(event: GroupMessageEvent):
-    await brick_matcher.send("[TODO] 咕咕")
+async def _(bot: Bot, event: GroupMessageEvent, session=get_session()):
+    group_member_list = await bot.get_group_member_list(group_id=int(event.group_id))
+    candidates_user_id = [
+        str(member["user_id"])
+        for member in group_member_list
+        if str(member["user_id"]) != event.user_id  # 排除用户自己
+        and str(member["user_id"]) != str(event.self_id)  # 排除机器人
+        and not member.get("is_robot", False)  # 排除机器人账号 (官鸡?)
+    ]
+    target_id = choice(candidates_user_id)
+    await slap_user(bot, event, target_id, session)
 
 
 @brick_matcher.assign("查看")
