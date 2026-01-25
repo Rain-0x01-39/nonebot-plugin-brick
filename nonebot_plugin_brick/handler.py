@@ -115,62 +115,8 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 @brick_matcher.assign("拍人")
 async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_session()):
-    user_id = str(event.user_id)
-    group_id = str(event.group_id)
     target_id = str(args.target.target)
-
-    # 看看用户有没有砖头
-    result = await session.execute(
-        select(Brick).where(
-            Brick.user_id == event.user_id, Brick.group_id == event.group_id
-        )
-    )
-    brick_data = result.scalar_one_or_none()
-    if not brick_data or brick_data.bricks <= 0:
-        await brick_matcher.finish("你在这个群还没有砖头，使用 /砖头 烧砖 烧点砖头吧")
-
-    # 检查目标是否是自己
-    if target_id == user_id:
-        await brick_matcher.finish("不能拍自己哦")
-
-    # 检查目标是否是机器人自己
-    if target_id == str(bot.self_id):
-        await brick_matcher.finish("不能拍机器人哦")
-
-    # 检查目标是否已禁言
-    # [TODO]
-
-    rev_probability = config.special_user.get(target_id, config.reverse) / 100
-
-    mute_time = randint(config.min_mute_time, config.max_mute_time)
-    mute_target_id = target_id
-
-    msg = (
-        UniMessage.at(target_id)
-        .text(" 你被 ")
-        .at(user_id)
-        .text(f" 拍晕了 {mute_time} 秒")
-    )
-
-    if random() < rev_probability:
-        # 反拍：用户自己被禁言
-        mute_target_id = user_id
-        msg = UniMessage.at(target_id).text(f" 夺过你的砖头，把你拍晕了 {mute_time} 秒")
-
-    try:
-        # 拍晕（禁言）用户
-        await bot.set_group_ban(
-            group_id=int(group_id), user_id=int(mute_target_id), duration=mute_time
-        )
-
-        # 减少砖头数量
-        brick_data.bricks -= 1
-        await session.commit()
-
-        await msg.send(target=event)
-    except Exception:
-        logger.opt(exception=True).error("禁言失败")
-        await brick_matcher.finish("禁言失败，可能是权限不足或目标已被禁言")
+    await slap_user(bot, event, target_id, session)
 
 
 @brick_matcher.assign("随机拍人")
@@ -255,3 +201,60 @@ async def commit_brick(group_id: str, user_id: str):
             logger.bind(group_id=group_id, user_id=user_id).warning(
                 "烧砖完成但未找到记录，跳过数据库更新"
             )
+
+
+async def slap_user(bot, event, target_id, session):
+    # 看看用户有没有砖头
+    result = await session.execute(
+        select(Brick).where(
+            Brick.user_id == event.user_id, Brick.group_id == event.group_id
+        )
+    )
+    brick_data = result.scalar_one_or_none()
+    if not brick_data or brick_data.bricks <= 0:
+        await brick_matcher.finish("你在这个群还没有砖头，使用 /砖头 烧砖 烧点砖头吧")
+
+    # 检查目标是否是自己
+    if target_id == event.user_id:
+        await brick_matcher.finish("不能拍自己哦")
+
+    # 检查目标是否是机器人自己
+    if target_id == str(bot.self_id):
+        await brick_matcher.finish("不能拍机器人哦")
+
+    # 检查目标是否已禁言
+    # [TODO]
+
+    rev_probability = config.special_user.get(target_id, config.reverse) / 100
+
+    mute_time = randint(config.min_mute_time, config.max_mute_time)
+    mute_target_id = target_id
+
+    msg = (
+        UniMessage.at(target_id)
+        .text(" 你被 ")
+        .at(event.user_id)
+        .text(f" 拍晕了 {mute_time} 秒")
+    )
+
+    if random() < rev_probability:
+        # 反拍：用户自己被禁言
+        mute_target_id = event.user_id
+        msg = UniMessage.at(target_id).text(f" 夺过你的砖头，把你拍晕了 {mute_time} 秒")
+
+    try:
+        # 拍晕（禁言）用户
+        await bot.set_group_ban(
+            group_id=int(event.group_id),
+            user_id=int(mute_target_id),
+            duration=mute_time,
+        )
+
+        # 减少砖头数量
+        brick_data.bricks -= 1
+        await session.commit()
+
+        await msg.send(target=event)
+    except Exception:
+        logger.opt(exception=True).error("禁言失败")
+        await brick_matcher.finish("禁言失败，可能是权限不足或目标已被禁言")
