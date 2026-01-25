@@ -129,37 +129,48 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_sessi
     if not brick_data or brick_data.bricks <= 0:
         await brick_matcher.finish("你在这个群还没有砖头，使用 /砖头 烧砖 烧点砖头吧")
 
+    # 检查目标是否是自己
+    if target_id == user_id:
+        await brick_matcher.finish("不能拍自己哦")
+
+    # 检查目标是否是机器人自己
+    if target_id == str(bot.self_id):
+        await brick_matcher.finish("不能拍机器人哦")
+
     # 检查目标是否已禁言
     # [TODO]
 
-    rev_probability = config.reverse / 100
+    rev_probability = config.special_user.get(target_id, config.reverse) / 100
+
+    mute_time = randint(config.min_mute_time, config.max_mute_time)
+    mute_target_id = target_id
+
+    msg = (
+        UniMessage.at(target_id)
+        .text(" 你被 ")
+        .at(user_id)
+        .text(f" 拍晕了 {mute_time} 秒")
+    )
+
     if random() < rev_probability:
-        try:
-            mute_time = randint(config.min_mute_time, config.max_mute_time)
-            await bot.set_group_ban(
-                group_id=int(group_id), user_id=int(user_id), duration=mute_time
-            )
-            msg = UniMessage.at(target_id).text(
-                f" 夺过你的砖头，把你拍晕了 {mute_time} 秒"
-            )
-            await msg.send(target=event)
-        except Exception:
-            logger.opt(exception=True).error("禁言失败")
-    else:
-        try:
-            mute_time = random.randint(config.min_mute_time, config.max_mute_time)
-            await bot.set_group_ban(
-                group_id=int(group_id), user_id=int(target_id), duration=mute_time
-            )
-            msg = (
-                UniMessage.at(target_id)
-                .text(" 你被 ")
-                .at(user_id)
-                .text(f" 拍晕了 {mute_time} 秒")
-            )
-            await msg.send(target=event)
-        except Exception:
-            logger.opt(exception=True).error("禁言失败")
+        # 反拍：用户自己被禁言
+        mute_target_id = user_id
+        msg = UniMessage.at(target_id).text(f" 夺过你的砖头，把你拍晕了 {mute_time} 秒")
+
+    try:
+        # 拍晕（禁言）用户
+        await bot.set_group_ban(
+            group_id=int(group_id), user_id=int(mute_target_id), duration=mute_time
+        )
+
+        # 减少砖头数量
+        brick_data.bricks -= 1
+        await session.commit()
+
+        await msg.send(target=event)
+    except Exception:
+        logger.opt(exception=True).error("禁言失败")
+        await brick_matcher.finish("禁言失败，可能是权限不足或目标已被禁言")
 
 
 @brick_matcher.assign("随机拍人")
