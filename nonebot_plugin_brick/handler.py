@@ -115,6 +115,8 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 @brick_matcher.assign("拍人")
 async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_session()):
+    if not args.target:
+        await brick_matcher.finish("请指定要拍的人")
     target_id = str(args.target.target)
     await slap_user(bot, event, target_id, session)
 
