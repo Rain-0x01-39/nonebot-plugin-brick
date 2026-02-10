@@ -15,11 +15,15 @@ dependencies = [
     "nonebot-plugin-alconna (>=0.60.4,<0.61.0)",
 ]
 
+[dependency-groups]
+adapters = [
+    "nonebot-adapter-onebot (>=2.4.6,<3.0.0)",
+    "nonebot-adapter-milky (>=1.0.0,<2.0.0)"
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
 
 [tool.nonebot]
 plugins = ["nonebot_plugin_brick"]
