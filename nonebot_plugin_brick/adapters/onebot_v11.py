@@ -1,4 +1,6 @@
 from contextlib import suppress
 
 with suppress(ImportError):
-    pass
+    from nonebot.adapters.onebot.v11 import GroupMessageEvent as OnebotGroupMessageEvent
+
+__all__ = ["OnebotGroupMessageEvent"]

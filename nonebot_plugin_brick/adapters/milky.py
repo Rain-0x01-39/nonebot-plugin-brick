@@ -1,4 +1,6 @@
 from contextlib import suppress
 
 with suppress(ImportError):
-    pass
+    from nonebot.adapters.milky.event import GroupMessageEvent as MilkyGroupMessageEvent
+
+__all__ = ["MilkyGroupMessageEvent"]

@@ -4,8 +4,6 @@ from random import choice, randint, random
 from arclet.alconna import Alconna
 from nonebot import logger
 from nonebot.adapters import Bot
-from nonebot.adapters.milky.event import GroupMessageEvent as MilkyGroupMessageEvent
-from nonebot.adapters.onebot.v11 import GroupMessageEvent as OnebotGroupMessageEvent
 from nonebot.message import event_preprocessor
 from nonebot_plugin_alconna import (
     Args,
@@ -17,6 +15,10 @@ from nonebot_plugin_alconna import (
     UniMessage,
     on_alconna,
 )
+
+# 从适配器模块导入事件类型
+from .adapters.onebot_v11 import OnebotGroupMessageEvent
+from .adapters.milky import MilkyGroupMessageEvent
 from nonebot_plugin_orm import get_session
 from sqlalchemy import select
 
