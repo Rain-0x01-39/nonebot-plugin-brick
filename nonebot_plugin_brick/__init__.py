@@ -4,6 +4,7 @@ from nonebot.plugin import PluginMetadata
 require("nonebot_plugin_orm")
 require("nonebot_plugin_alconna")
 
+from . import adapters as adapters
 from .config import Config
 from .handler import *
 

@@ -3,7 +3,9 @@ from random import choice, randint, random
 
 from arclet.alconna import Alconna
 from nonebot import logger
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
+from nonebot.adapters import Bot
+from nonebot.adapters.milky.event import GroupMessageEvent as MilkyGroupMessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent as OnebotGroupMessageEvent
 from nonebot.message import event_preprocessor
 from nonebot_plugin_alconna import (
     Args,
@@ -82,28 +84,34 @@ brick_matcher = on_alconna(
 
 
 @brick_matcher.assign("烧砖")
-async def _(event: GroupMessageEvent, session=get_session()):
+async def _(
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent, session=get_session()
+):
     # 查砖，满了不能烧
     result = await session.execute(
         select(Brick).where(
-            Brick.user_id == event.user_id, Brick.group_id == event.group_id
+            Brick.user_id == event.get_user_id(), Brick.group_id == event.group_id
         )
     )
     brick_data = result.scalar_one_or_none()
 
     if not brick_data:
         # 创建记录
-        logger.bind(group_id=event.group_id, user_id=event.user_id).info("创建砖头记录")
-        brick_data = Brick(user_id=event.user_id, group_id=event.group_id, bricks=0)
+        logger.bind(group_id=event.group_id, user_id=event.get_user_id()).info(
+            "创建砖头记录"
+        )
+        brick_data = Brick(
+            user_id=event.get_user_id(), group_id=event.group_id, bricks=0
+        )
         session.add(brick_data)
         await session.commit()
     elif brick_data.bricks >= config.max_brick:
         await brick_matcher.finish(f"你最多只能拥有{config.max_brick}块砖")
 
-    if (str(event.group_id), str(event.user_id)) in burn_states:
+    if (str(event.group_id), str(event.get_user_id())) in burn_states:
         await brick_matcher.finish("已经在烧砖了")
 
-    burn_states[(str(event.group_id), str(event.user_id))] = {
+    burn_states[(str(event.group_id), str(event.get_user_id()))] = {
         "burning": True,
         "msgcount": 0,
     }
@@ -114,18 +122,27 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 
 @brick_matcher.assign("拍人")
-async def _(bot: Bot, event: GroupMessageEvent, args: Arparma, session=get_session()):
+async def _(
+    bot: Bot,
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent,
+    args: Arparma,
+    session=get_session(),
+):
     target_id = str(args.target.target)
     await slap_user(bot, event, target_id, session)
 
 
 @brick_matcher.assign("随机拍人")
-async def _(bot: Bot, event: GroupMessageEvent, session=get_session()):
+async def _(
+    bot: Bot,
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent,
+    session=get_session(),
+):
     group_member_list = await bot.get_group_member_list(group_id=int(event.group_id))
     candidates_user_id = [
         str(member["user_id"])
         for member in group_member_list
-        if str(member["user_id"]) != event.user_id  # 排除用户自己
+        if str(member["user_id"]) != event.get_user_id()  # 排除用户自己
         and str(member["user_id"]) != str(event.self_id)  # 排除机器人
         and not member.get("is_robot", False)  # 排除机器人账号 (官鸡?)
     ]
@@ -134,9 +151,11 @@ async def _(bot: Bot, event: GroupMessageEvent, session=get_session()):
 
 
 @brick_matcher.assign("查看")
-async def _(event: GroupMessageEvent, session=get_session()):
+async def _(
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent, session=get_session()
+):
     group_id = event.group_id
-    user_id = event.user_id
+    user_id = event.get_user_id()
 
     # 从数据库查询用户砖头信息
     result = await session.execute(
@@ -151,11 +170,13 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 
 @brick_matcher.assign("签到")
-async def _(event: GroupMessageEvent, session=get_session()):
+async def _(
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent, session=get_session()
+):
     from datetime import datetime
 
     group_id = event.group_id
-    user_id = event.user_id
+    user_id = event.get_user_id()
 
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -201,7 +222,9 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 
 @event_preprocessor
-async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
+async def burn_brick_counter(
+    event: OnebotGroupMessageEvent | MilkyGroupMessageEvent, bot: Bot
+):
     if not burn_states:
         logger.debug("无人烧砖")
         return
@@ -209,7 +232,7 @@ async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
     logger.debug("开始检查烧砖状态")
 
     group_id = str(event.group_id)
-    sender_id = str(event.user_id)
+    sender_id = str(event.get_user_id())
 
     for key, state in list(burn_states.items()):
         g, u = key
@@ -218,7 +241,7 @@ async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
         if sender_id == str(bot.self_id) or sender_id == u:
             continue
         state["msgcount"] += 1
-        logger.bind(group_id=event.group_id, user_id=event.user_id).debug(
+        logger.bind(group_id=event.group_id, user_id=event.get_user_id()).debug(
             "烧砖消息计数 {msgcount}", msgcount=state["msgcount"]
         )
 
@@ -257,11 +280,13 @@ async def commit_brick(group_id: str, user_id: str):
             )
 
 
-async def slap_user(bot, event, target_id, session):
+async def slap_user(
+    bot, event: OnebotGroupMessageEvent | MilkyGroupMessageEvent, target_id, session
+):
     # 看看用户有没有砖头
     result = await session.execute(
         select(Brick).where(
-            Brick.user_id == event.user_id, Brick.group_id == event.group_id
+            Brick.user_id == event.get_user_id(), Brick.group_id == event.group_id
         )
     )
     brick_data = result.scalar_one_or_none()
@@ -269,7 +294,7 @@ async def slap_user(bot, event, target_id, session):
         await brick_matcher.finish("你在这个群还没有砖头，使用 /砖头 烧砖 烧点砖头吧")
 
     # 检查目标是否是自己
-    if target_id == event.user_id:
+    if target_id == event.get_user_id():
         await brick_matcher.finish("不能拍自己哦")
 
     # 检查目标是否是机器人自己
@@ -287,13 +312,13 @@ async def slap_user(bot, event, target_id, session):
     msg = (
         UniMessage.at(target_id)
         .text(" 你被 ")
-        .at(event.user_id)
+        .at(event.get_user_id())
         .text(f" 拍晕了 {mute_time} 秒")
     )
 
     if random() < rev_probability:
         # 反拍：用户自己被禁言
-        mute_target_id = event.user_id
+        mute_target_id = event.get_user_id()
         msg = UniMessage.at(target_id).text(f" 夺过你的砖头，把你拍晕了 {mute_time} 秒")
 
     try:
