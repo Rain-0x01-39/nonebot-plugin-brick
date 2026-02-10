@@ -135,8 +135,8 @@ async def _(bot: Bot, event: GroupMessageEvent, session=get_session()):
 
 @brick_matcher.assign("查看")
 async def _(event: GroupMessageEvent, session=get_session()):
-    user_id = event.user_id
     group_id = event.group_id
+    user_id = event.user_id
 
     # 从数据库查询用户砖头信息
     result = await session.execute(
@@ -151,8 +151,53 @@ async def _(event: GroupMessageEvent, session=get_session()):
 
 
 @brick_matcher.assign("签到")
-async def _(event: GroupMessageEvent):
-    await brick_matcher.send("[TODO] 咕咕")
+async def _(event: GroupMessageEvent, session=get_session()):
+    from datetime import datetime
+
+    group_id = event.group_id
+    user_id = event.user_id
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # 查询用户在该群的签到信息
+    result = await session.execute(
+        select(Brick).where(Brick.user_id == user_id, Brick.group_id == group_id)
+    )
+    brick_data = result.scalar_one_or_none()
+
+    # 如果没有记录，创建新记录
+    if not brick_data:
+        logger.bind(group_id=group_id, user_id=user_id).info("创建砖头记录")
+        brick_data = Brick(user_id=user_id, group_id=group_id, bricks=0)
+        session.add(brick_data)
+        await session.commit()
+        await session.refresh(brick_data)
+
+    # 检查是否已经签到
+    if brick_data.checking_day == today:
+        await brick_matcher.finish("你今天已经签到过了")
+
+    # 随机获得砖头数量
+    gain = randint(config.min_gain, config.max_gain)
+
+    # 检查是否会超过最大砖头数
+    if brick_data.bricks + gain > config.max_brick:
+        gain = config.max_brick - brick_data.bricks
+        if gain <= 0:
+            await brick_matcher.finish("你的砖头已经到上限了，用掉再签到吧")
+
+    # 更新签到信息
+    new_bricks = brick_data.bricks + gain
+    brick_data.bricks = new_bricks
+    brick_data.checking_day = today
+    await session.commit()
+
+    logger.bind(group_id=group_id, user_id=user_id).info(
+        "签到获得 {gain} 砖头", gain=gain
+    )
+    await brick_matcher.send(
+        f"签到成功，你获得了 {gain} 块砖头，现在有{new_bricks}/{config.max_brick}块砖头"
+    )
 
 
 @event_preprocessor
@@ -163,8 +208,8 @@ async def burn_brick_counter(event: GroupMessageEvent, bot: Bot):
 
     logger.debug("开始检查烧砖状态")
 
-    sender_id = str(event.user_id)
     group_id = str(event.group_id)
+    sender_id = str(event.user_id)
 
     for key, state in list(burn_states.items()):
         g, u = key
