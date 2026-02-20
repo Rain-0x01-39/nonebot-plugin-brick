@@ -26,6 +26,8 @@ _✨ 烧制砖块，然后拍晕群友！ ✨_
 
 功夫再好，一砖撂倒。烧制砖头来拍群友吧，拍好了禁言他，没拍好被禁言！
 
+受 [koishi-plugin-brick](https://github.com/windbullet/koishi-plugin-brick) 启发开发
+
 ## 💿 安装
 
 <details open>
